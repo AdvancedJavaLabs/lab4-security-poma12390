@@ -1,0 +1,300 @@
+=== CASE R1 ===
+GOAL: POST /register positive: normal registration
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode userName=Alice -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: false
+
+=== CASE R2 ===
+GOAL: POST /register boundary: duplicate userId
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode userName=Alice2 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: false
+
+=== CASE R3 ===
+GOAL: POST /register negative: missing userName
+CMD: curl -sS -X POST --get --data-urlencode userId=missing_name -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing parameters
+
+=== CASE R4 ===
+GOAL: POST /register security: store XSS payload in userName
+CMD: curl -sS -X POST --get --data-urlencode userId=xss_user --data-urlencode userName=\<script\>alert\(1\)\</script\> -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: true
+
+=== CASE R5 ===
+GOAL: POST /register security chars: userName with < > " ' / ..
+CMD: curl -sS -X POST --get --data-urlencode userId=special_chars --data-urlencode userName=\<b\>\"\'\ /\ ..\</b\> -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: true
+
+=== CASE R6 ===
+GOAL: POST /register prep: register old_user
+CMD: curl -sS -X POST --get --data-urlencode userId=old_user --data-urlencode userName=Old -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: true
+
+=== CASE R7 ===
+GOAL: POST /register prep: register no_session_user
+CMD: curl -sS -X POST --get --data-urlencode userId=no_session_user --data-urlencode userName=NoSession -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/register 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: true
+
+=== CASE S1 ===
+GOAL: POST /recordSession positive: valid ISO timestamps
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode loginTime=2026-05-10T10:00:00 --data-urlencode logoutTime=2026-05-10T11:30:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Session recorded
+
+=== CASE S2 ===
+GOAL: POST /recordSession negative: invalid datetime format
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode loginTime=bad-time --data-urlencode logoutTime=2026-05-10T11:30:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Invalid data: Text 'bad-time' could not be parsed at index 0
+
+=== CASE S3 ===
+GOAL: POST /recordSession negative: missing logoutTime
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode loginTime=2026-05-10T10:00:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing parameters
+
+=== CASE S4 ===
+GOAL: POST /recordSession negative: unknown user
+CMD: curl -sS -X POST --get --data-urlencode userId=ghost --data-urlencode loginTime=2026-05-10T10:00:00 --data-urlencode logoutTime=2026-05-10T11:30:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 404
+RESPONSE_SNIPPET: User not found
+
+=== CASE S5 ===
+GOAL: POST /recordSession positive prep: old session for old_user
+CMD: curl -sS -X POST --get --data-urlencode userId=old_user --data-urlencode loginTime=2020-01-01T10:00:00 --data-urlencode logoutTime=2020-01-01T12:00:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Session recorded
+
+=== CASE T1 ===
+GOAL: GET /totalActivity positive: existing user
+CMD: curl -sS -G --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/totalActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Total activity: 90 minutes
+
+=== CASE M1 ===
+GOAL: GET /monthlyActivity positive: valid month
+CMD: curl -sS -G --data-urlencode userId=u_normal --data-urlencode month=2026-05 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/monthlyActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Invalid data: It looks like you don't have an object mapper configured. The easiest way to fix this is to simply add the 'jackson-databind' dependency:  pom.xml: <dependency>     <groupId>com.fasterxml.jackson.core</groupId>     <artifactId>jackson-databind</a
+
+=== CASE S6 ===
+GOAL: POST /recordSession security: logout earlier than login (negative duration)
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode loginTime=2026-05-10T12:00:00 --data-urlencode logoutTime=2026-05-10T11:00:00 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/recordSession 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Session recorded
+
+=== CASE T2 ===
+GOAL: GET /totalActivity boundary after tampering input
+CMD: curl -sS -G --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/totalActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Total activity: 30 minutes
+
+=== CASE T3 ===
+GOAL: GET /totalActivity negative: missing userId
+CMD: curl -sS -G -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/totalActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing userId
+
+=== CASE T4 ===
+GOAL: GET /totalActivity boundary: unknown user returns zero
+CMD: curl -sS -G --data-urlencode userId=ghost -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/totalActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Total activity: 0 minutes
+
+=== CASE I1 ===
+GOAL: GET /inactiveUsers positive: days=30 should include old_user
+CMD: curl -sS -G --data-urlencode days=30 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/inactiveUsers 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 500
+RESPONSE_SNIPPET: {     "title": "It looks like you don't have an object mapper configured.
+The easiest way to fix this is to simply add the 'jackson-databind' dependency:
+
+pom.xml:
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-dat
+
+=== CASE I2 ===
+GOAL: GET /inactiveUsers negative: missing days
+CMD: curl -sS -G -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/inactiveUsers 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing days parameter
+
+=== CASE I3 ===
+GOAL: GET /inactiveUsers negative: invalid days format
+CMD: curl -sS -G --data-urlencode days=abc -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/inactiveUsers 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Invalid number format for days
+
+=== CASE I4 ===
+GOAL: GET /inactiveUsers boundary/security: negative days
+CMD: curl -sS -G --data-urlencode days=-1 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/inactiveUsers 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 500
+RESPONSE_SNIPPET: {     "title": "It looks like you don't have an object mapper configured.
+The easiest way to fix this is to simply add the 'jackson-databind' dependency:
+
+pom.xml:
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-dat
+
+=== CASE M2 ===
+GOAL: GET /monthlyActivity negative: missing month
+CMD: curl -sS -G --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/monthlyActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing parameters
+
+=== CASE M3 ===
+GOAL: GET /monthlyActivity negative: invalid month format
+CMD: curl -sS -G --data-urlencode userId=u_normal --data-urlencode month=2026/05 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/monthlyActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Invalid data: Text '2026/05' could not be parsed at index 4
+
+=== CASE M4 ===
+GOAL: GET /monthlyActivity boundary: user without sessions
+CMD: curl -sS -G --data-urlencode userId=no_session_user --data-urlencode month=2026-05 -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/monthlyActivity 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Invalid data: No sessions found for user
+
+=== CASE U1 ===
+GOAL: GET /userProfile positive: known user
+CMD: curl -sS -G --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/userProfile 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: <html><body><h1>Profile: Alice</h1><p>ID: u_normal</p><p>Total activity: 30 min</p></body></html>
+
+=== CASE U2 ===
+GOAL: GET /userProfile negative: missing userId
+CMD: curl -sS -G -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/userProfile 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing userId
+
+=== CASE U3 ===
+GOAL: GET /userProfile negative: unknown user
+CMD: curl -sS -G --data-urlencode userId=ghost -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/userProfile 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 404
+RESPONSE_SNIPPET: User not found
+
+=== CASE U4 ===
+GOAL: GET /userProfile security: reflected raw <script> payload
+CMD: curl -sS -G --data-urlencode userId=xss_user -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/userProfile 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: <html><body><h1>Profile: <script>alert(1)</script></h1><p>ID: xss_user</p><p>Total activity: 0 min</p></body></html>
+
+=== CASE U5 ===
+GOAL: GET /userProfile security chars rendering: < > " ' / ..
+CMD: curl -sS -G --data-urlencode userId=special_chars -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/userProfile 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: <html><body><h1>Profile: <b>"' / ..</b></h1><p>ID: special_chars</p><p>Total activity: 0 min</p></body></html>
+
+=== CASE E1 ===
+GOAL: GET /exportReport positive: normal filename
+CMD: curl -sS -G --data-urlencode userId=u_normal --data-urlencode filename=report.txt -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/exportReport 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Report saved to: /tmp/reports/report.txt
+
+=== CASE E2 ===
+GOAL: GET /exportReport negative: missing filename
+CMD: curl -sS -G --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/exportReport 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing parameters
+
+=== CASE E3 ===
+GOAL: GET /exportReport negative: unknown user
+CMD: curl -sS -G --data-urlencode userId=ghost --data-urlencode filename=ghost.txt -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/exportReport 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 404
+RESPONSE_SNIPPET: User not found
+
+=== CASE E4 ===
+GOAL: GET /exportReport security: path traversal with ../ in filename
+CMD: curl -sS -G --data-urlencode userId=u_normal --data-urlencode filename=../escape.txt -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/exportReport 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Report saved to: /tmp/reports/../escape.txt
+
+=== CASE N1 ===
+GOAL: POST /notify positive: callback to local endpoint
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode callbackUrl=http://localhost:7000/totalActivity\?userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Notification sent. Response: Total activity: 30 minutes
+
+=== CASE N2 ===
+GOAL: POST /notify negative: missing callbackUrl
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 400
+RESPONSE_SNIPPET: Missing parameters
+
+=== CASE N3 ===
+GOAL: POST /notify negative: unknown user
+CMD: curl -sS -X POST --get --data-urlencode userId=ghost --data-urlencode callbackUrl=http://localhost:7000/totalActivity\?userId=u_normal -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 404
+RESPONSE_SNIPPET: User not found
+
+=== CASE N4 ===
+GOAL: POST /notify negative: invalid URL format
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode callbackUrl=not-a-url -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 500
+RESPONSE_SNIPPET: Notification failed: no protocol: not-a-url
+
+=== CASE N5 ===
+GOAL: POST /notify security: SSRF to /userProfile with XSS-containing HTML
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode callbackUrl=http://localhost:7000/userProfile\?userId=xss_user -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Notification sent. Response: <html><body><h1>Profile: <script>alert(1)</script></h1><p>ID: xss_user</p><p>Total activity: 0 min</p></body></html>
+
+=== CASE N6 ===
+GOAL: POST /notify security: URL parameter as local file scheme
+CMD: curl -sS -X POST --get --data-urlencode userId=u_normal --data-urlencode callbackUrl=file:///etc/hosts -w \nHTTP_CODE:%\{http_code\} http://localhost:7000/notify 
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: Notification sent. Response: ## # Host Database # # localhost is used to configure the loopback interface # when the system is booting.  Do not change this entry. ## 127.0.0.1	localhost 255.255.255.255	broadcasthost ::1             localhost
+
+=== CASE R8 ===
+GOAL: POST /register positive: fresh normal registration
+CMD: curl -sS -X POST --get --data-urlencode userId=fresh_user --data-urlencode userName=Fresh -w 
+HTTP_CODE:%{http_code} http://localhost:7000/register
+CURL_EXIT_CODE: 0
+HTTP_CODE: 200
+RESPONSE_SNIPPET: User registered: true 
+
